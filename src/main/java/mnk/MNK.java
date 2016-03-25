@@ -1,5 +1,6 @@
 package mnk;
 
+import com.sun.tools.javac.util.*;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.UniformRealDistribution;
 import org.knowm.xchart.Chart;
@@ -7,6 +8,7 @@ import org.knowm.xchart.SwingWrapper;
 
 import java.lang.Double;
 import java.util.*;
+import java.util.List;
 
 import org.knowm.xchart.StyleManager.LegendPosition;
 import org.knowm.xchart.StyleManager.ChartType;
@@ -17,41 +19,41 @@ import org.knowm.xchart.StyleManager.ChartType;
 
 public class MNK {
 
-    static final int PERCENT = 10;
+    static final int PERCENT = 20;
 
     //COSX
-    static final double TOP_Y = 1;
-    static final double BOTTOM_Y = -1;
-    static final double LEFT_X = 3.14;
-    static final double RIGHT_X = 3.14 * 4;
-    static final double RANGE_X = 0.25;
-    static final double MAX = 1.0;
-    static final double RANDOM_COUNT = 50;
+//    static final double TOP_Y = 1;
+//    static final double BOTTOM_Y = -1;
+//    static final double LEFT_X = 3.14;
+//    static final double RIGHT_X = 3.14 * 4;
+//    static final double RANGE_X = 0.25;
+//    static final double MAX = 1.0;
+//    static final int RANDOM_COUNT = 100;
 
-    //    5x^3 + x^2 + 5
-//    static final double TOP_Y = 100;
-//    static final double BOTTOM_Y = -100;
-//    static final double LEFT_X = -7;
-//    static final double RIGHT_X = 7;
-//    static final double RANGE_X = 0.20;
-//    static final double MAX = 2000;
-//    static final double RANDOM_COUNT = 50;
-
-//    sin
+    //    sin
 //    static final double TOP_Y = 3.14;
 //    static final double BOTTOM_Y = -3.14;
 //    static final double LEFT_X = 0;
-//    static final double RIGHT_X = 3.14;
+//    static final double RIGHT_X = 2.5;
 //    static final double RANGE_X = 0.1;
 //    static final double MAX = 3.14;
-//    static final double RANDOM_COUNT = 50;
+//    static final int RANDOM_COUNT = 90;
+
+//    5x^3 + x^2 + 5
+    static final double TOP_Y = 100;
+    static final double BOTTOM_Y = -100;
+    static final double LEFT_X = -7;
+    static final double RIGHT_X = 7;
+    static final double RANGE_X = 0.20;
+    static final double MAX = 2000;
+    static final int RANDOM_COUNT = 200;
 
     private final UniformRealDistribution distribution = new UniformRealDistribution(LEFT_X, RIGHT_X);
     private final NormalDistribution normalDistribution = new NormalDistribution();
 
-    private List<List<Double>> funcData = cosData();
-    private List<List<Double>> funcDataError = cosDataError();
-
+    private List<List<Double>> funcData = solvData();
+    private List<List<Double>> funcDataError = solvDataError();
+    private int currentFunc = 3;
 
 
     private double[][] matrix;
@@ -60,6 +62,8 @@ public class MNK {
     double[][] makeSystem(double[][] xyTable, int basis) {
 
         double[][] matrix = new double[basis][basis+1];
+        double lambda = 0.00001;
+
         for(int i = 0; i < basis; i++) {
             for(int j = 0; j < basis; j++) {
                 double sumA = 0;
@@ -70,90 +74,15 @@ public class MNK {
                 }
                 matrix[i][j] = sumA;
                 matrix[i][basis] = sumB;
+
+                if (i == j) {
+                    matrix[i][j] = sumA - lambda;
+                }
             }
         }
         this.matrix = matrix;
         return matrix;
     }
-
-    double[] Kramer(double[][] matrix) {
-
-        double[] result = new double[matrix.length];
-        double bigDeterminant = determinant(kramerMatrix(matrix, -1));
-        for (int i = 0; i < matrix.length; i++) {
-            double smallDeterminant = determinant(kramerMatrix(matrix, i));
-            result[i] = smallDeterminant / bigDeterminant;
-        }
-
-        return result;
-    }
-
-    double determinant(double[][] matrix) {
-
-//        System.out.println(matrix.length + " " + matrix[0].length);
-
-        int columns = matrix[0].length;
-        if (columns == 1) {
-            return matrix[0][0];
-        }
-
-        double sum = 0;
-        for (int i = 0; i < columns; i++) {
-            double element = matrix[0][i] * Math.pow(-1, i);
-            double[][] subMatrix = matrixFromMatrix(matrix, 0, i);
-            sum += element*determinant(subMatrix);
-        }
-
-        return sum;
-    }
-
-    double[][] kramerMatrix(double[][] matrix, int index) {
-
-        int rows = matrix.length;
-        int columns = matrix[0].length;
-        double[][] newMatrix = new double[rows][columns-1];
-
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < columns - 1; j++) {
-                if (j == index) {
-                    newMatrix[i][j] = matrix[i][columns-1];
-                    continue;
-                }
-                newMatrix[i][j] = matrix[i][j];
-            }
-        }
-
-        return newMatrix;
-    }
-
-    double[][] matrixFromMatrix(double[][] matrix, int row, int column) {
-
-        int rows = matrix[0].length;
-        int columns = matrix.length;
-        double[][] newMatrix = new double[rows-1][columns-1];
-
-        int g = 0;
-        int k = 0;
-        for (int i = 0; i < rows; i++) {
-
-            if (i == row) {
-                continue;
-            }
-
-            k = 0;
-            for (int j = 0; j < columns; j++) {
-
-                if (j == column) {
-                    continue;
-                }
-
-                newMatrix[g][k++] = matrix[i][j];
-            }
-            g++;
-        }
-        return newMatrix;
-    }
-
 
     private double[] Gauss(int rowCount, int colCount){
         int i;
@@ -229,7 +158,7 @@ public class MNK {
             str += result[i] + "x^" + i + " + ";
         }
         str += result[basis-1] + "x^" + (basis-1);
-        System.out.println(str);
+//        System.out.println(str);
         return result;
     }
 
@@ -241,6 +170,22 @@ public class MNK {
         return sum;
     }
 
+    double origFy(double x) {
+
+        switch (currentFunc) {
+            case 1: {
+                return Math.cos(x);
+            }
+            case 2: {
+                return  (x * Math.sin(2 * Math.PI * x));
+            }
+            case 3: {
+                return (5*Math.pow(x,3) + Math.pow(x,2) + 5);
+            }
+        }
+
+        return 0;
+    }
 
     List<List<Double>> cosData() {
 
@@ -263,6 +208,7 @@ public class MNK {
 
         List<Double> xData = new ArrayList<Double>();
         List<Double> yData = new ArrayList<Double>();
+
 
         for (int i = 0; i < RANDOM_COUNT; i++) {
             double x = distribution.sample();
@@ -359,7 +305,7 @@ public class MNK {
 
         for (int i = 0; i < yData.size(); i++) {
             if (new Random().nextInt(100) < PERCENT) {
-                yData.set(i, normalDistribution.sample());
+                yData.set(i, normalDistribution.sample()*50);
             }
         }
 
@@ -370,7 +316,107 @@ public class MNK {
         return data;
     }
 
+    public void crossValidation() {
 
+        List<List<Double>> dataError = funcDataError;
+
+        final int count = 8;
+        int power = 3;
+
+        double minError = Float.MAX_VALUE;
+        double bestPower = 0;
+
+        for (int i = 0; i < count; i++) {
+
+            List<List<Double>> blocks = blocksWithoutIndex(count, i, dataError);
+
+            double[] xa = xForList(blocks);
+            double[] ya = yForList(blocks);
+            double[][] xyTable = {xa, ya};
+            double[] result = LeastSquares(xyTable, power);
+
+            List<List<Double>> trainBlock = blockWithIndex(count, i, dataError);
+
+            double[] trainX = xForList(trainBlock);
+
+            double error = 0;
+            for (int j = 0; j < trainX.length; j++) {
+                double x = trainX[j];
+                double y1 = fy(result, x);
+                double y2 = origFy(x);
+                error += (y1-y2)*(y1-y2);
+            }
+            error = error * 0.5f;
+
+            if (minError > error) {
+                minError = error;
+                bestPower = power;
+            }
+
+            power++;
+        }
+
+        System.out.println("BEST POWER = " + bestPower);
+
+    }
+
+    public double[] yForList(List<List<Double>> list) {
+
+        List<Double> yBlocks = list.get(1);
+        Double[] yDataArray = yBlocks.toArray(new Double[yBlocks.size()]);
+        double[] yDatadouble = new double[yDataArray.length];
+        for (int i = 0; i < yDataArray.length; i++) {
+            yDatadouble[i] = yDataArray[i];
+        }
+        return yDatadouble;
+    }
+
+    public double[] xForList(List<List<Double>> list) {
+
+        List<Double> xBlocks = list.get(0);
+        Double[] xDataArray = xBlocks.toArray(new Double[xBlocks.size()]);
+        double[] xDatadouble = new double[xDataArray.length];
+        for (int i = 0; i < xDataArray.length; i++) {
+            xDatadouble[i] = xDataArray[i];
+        }
+        return xDatadouble;
+    }
+
+    public List<List<Double>> blockWithIndex(int count, int index, List<List<Double>> dataError) {
+
+        List<Double> xData = new ArrayList<Double>(dataError.get(0));
+        List<Double> yData = new ArrayList<Double>(dataError.get(1));
+
+        int start = RANDOM_COUNT / count * index;
+        int end = RANDOM_COUNT / count * (index + 1);
+
+        xData = xData.subList(start, end);
+        yData = yData.subList(start, end);
+
+        List<List<Double>> data = new ArrayList<List<Double>>();
+        data.add(xData);
+        data.add(yData);
+        return data;
+    }
+
+    public List<List<Double>> blocksWithoutIndex(int count, int index, List<List<Double>> dataError) {
+
+        List<Double> xData = new ArrayList<Double>(dataError.get(0));
+        List<Double> yData = new ArrayList<Double>(dataError.get(1));
+
+        int start = RANDOM_COUNT / count * index;
+        int end = RANDOM_COUNT / count * (index + 1);
+
+        for (int i = start; i < end; i++) {
+            xData.remove(start);
+            yData.remove(start);
+        }
+
+        List<List<Double>> data = new ArrayList<List<Double>>();
+        data.add(xData);
+        data.add(yData);
+        return data;
+    }
 
 
     public static void main(String... aArgs) {
@@ -418,10 +464,12 @@ public class MNK {
         charts.add(mnk.chartForPower(6, xyTable));
         charts.add(mnk.chartForPower(7, xyTable));
         charts.add(mnk.chartForPower(8, xyTable));
-
-//        charts.add(mnk.chartForPower(18, xyTable)); // SIN
+        charts.add(mnk.chartForPower(9, xyTable));
+        charts.add(mnk.chartForPower(10, xyTable));
 
         new SwingWrapper(charts).displayChartMatrix();
+
+        mnk.crossValidation();
     }
 
     Chart chartForPower(Integer power, double[][] xyTable) {
